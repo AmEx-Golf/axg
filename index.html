@@ -530,6 +530,7 @@ function holePts(pid,h){
   const opp=getOpponent(pid), od=opp?getData(opp.id,h):{};
   const oppMovedMeOffGreen=!!(d.ctpLost && od.ctpState==='won' && od.ctpAction==='pushOff');
   if(d.fir && !d.ldLost) stat+=AX_GOLF.fir;
+  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Long Drive
   if(d.gir && !oppMovedMeOffGreen) stat+=AX_GOLF.gir;
   if(d.ctpWon && d.ctpState==='won' && d.ctpAction==='pushOff') stat+=AX_GOLF.gir; // stolen GIR pts only when opponent is moved off green
   if(d.sand) stat+=AX_GOLF.sand;
@@ -547,6 +548,7 @@ function holePtsDetailed(pid,h){
   const oppMovedMeOffGreen=!!(d.ctpLost && od.ctpState==='won' && od.ctpAction==='pushOff');
 
   if(d.fir && !d.ldLost) stat+=AX_GOLF.fir;
+  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Long Drive
   if(d.gir && !oppMovedMeOffGreen) stat+=AX_GOLF.gir;
   if(d.ctpWon && d.ctpState==='won' && d.ctpAction==='pushOff') stat+=AX_GOLF.gir; // stolen GIR pts only when opponent is moved off green
   if(d.sand) stat+=AX_GOLF.sand;
