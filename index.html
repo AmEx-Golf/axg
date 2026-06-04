@@ -199,7 +199,20 @@
     object-fit:contain!important;
   }
 
+
+  /* FINAL MATCH SUMMARY REPORT */
+  .report-scroll{overflow-x:auto;}
+  .report-tbl{width:100%;border-collapse:collapse;font-size:.76rem;min-width:940px;}
+  .report-tbl th{font-family:'Barlow Condensed',sans-serif;font-size:.55rem;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-muted);padding:7px 6px;background:#ddeef9;text-align:center;white-space:nowrap;}
+  .report-tbl td{padding:8px 6px;text-align:center;border-bottom:1px solid rgba(176,212,238,.45);}
+  .report-tbl td:first-child,.report-tbl th:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1;}
+  .report-tbl th:first-child{background:#ddeef9;z-index:2;}
+  .report-note{font-size:.76rem;color:var(--text-muted);line-height:1.4;padding:0 14px 12px;}
+
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -426,11 +439,17 @@
     </table>
   </div>
   <div class="scoreboard">
+    <div class="sb-head"><h3>Match Summary Report</h3></div>
+    <div class="report-note">Generated when the match is finalized. Counts show actual recorded achievements; points reflect the final AX Golf scoring rules, including stolen FIR/GIR points and low-round bonus when applicable.</div>
+    <div class="report-scroll"><table class="report-tbl" id="summaryReportTbl"></table></div>
+  </div>
+  <div class="scoreboard">
     <div class="sb-head"><h3>Hole by Hole</h3></div>
     <div class="hbd-wrap"><table class="hbd-tbl" id="hbdTbl"></table></div>
   </div>
   <div id="sumActions" style="margin:14px 0 80px;display:flex;flex-direction:column;gap:10px;">
     <button class="btn-primary" id="returnBtn" onclick="returnToScoring()" style="display:none;">◀ RETURN TO SCORING</button>
+    <button class="btn-gold" id="downloadReportBtn" onclick="downloadSummaryReport()" style="display:none;"> DOWNLOAD SUMMARY REPORT PDF</button>
     <button class="btn-gold" id="newMatchBtn" onclick="newMatch()"> NEW MATCH</button>
   </div>
   <pb></pb>
@@ -877,6 +896,179 @@ function lowRoundBonuses(){
   tied.forEach(x=>lrB[x.id]=split);
   return lrB;
 }
+
+function finalPlayerReport(lrB={}){
+  return G.players.map(p=>{
+    let scorePts=0,statPts=0,penaltyPts=0;
+    let ldsWon=0,ctpsWon=0,fir=0,gir=0,sand=0,onePutt=0,holeOut=0,threePutt=0,obLost=0;
+    for(let h=1;h<=G.holes;h++){
+      const d=G.scores[p.id]?.[h]||{};
+      const hp=holePtsDetailed(p.id,h);
+      scorePts+=hp.score;
+      statPts+=hp.stat;
+      penaltyPts+=hp.penalty;
+      if(hasLDWin(d)) ldsWon++;
+      if(d.ctpState==='won'||d.ctpWon) ctpsWon++;
+      if(d.fir) fir++;
+      if(d.gir) gir++;
+      if(d.sand) sand++;
+      if(d.onePutt) onePutt++;
+      if(d.holeOut) holeOut++;
+      if(d.threePutt) threePutt++;
+      if(d.ob) obLost+=Number(d.ob)||0;
+    }
+    const bonus=lrB[p.id]||0;
+    const totalPoints=scorePts+statPts+penaltyPts+bonus;
+    return {
+      player:p.name,
+      team:pCount===4?p.team:'',
+      strokePlayScore:strokeTotal(p.id)||0,
+      totalPoints,
+      ldsWon,
+      ctpsWon,
+      fir,
+      gir,
+      sand,
+      onePutt,
+      holeOut,
+      threePutt,
+      obLost
+    };
+  });
+}
+
+function renderSummaryReport(lrB={}){
+  const tbl=document.getElementById('summaryReportTbl');
+  if(!tbl) return;
+  const rows=finalPlayerReport(lrB);
+  let h=`<thead><tr>
+    <th>Player</th>${pCount===4?'<th>Team</th>':''}<th>Stroke Play<br>Score</th><th>Total Individual<br>Points</th><th>LDs<br>Won</th><th>CTPs<br>Won</th><th>Fairways Hit<br>in Reg</th><th>Greens Hit<br>in Reg</th><th>Sand<br>Saves</th><th>One<br>Putts</th><th>Hole<br>Outs</th><th>3 Putts<br>or Worse</th><th>OB/Lost<br>Balls</th>
+  </tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const p=G.players.find(x=>x.name===r.player) || {};
+    h+=`<tr><td><strong style="color:${PCOLOR[p.ci||0]}">${r.player}</strong></td>${pCount===4?`<td>${r.team}</td>`:''}<td>${r.strokePlayScore||'—'}</td><td class="${pc(r.totalPoints)}"><strong>${ps(r.totalPoints)}</strong></td><td>${r.ldsWon}</td><td>${r.ctpsWon}</td><td>${r.fir}</td><td>${r.gir}</td><td>${r.sand}</td><td>${r.onePutt}</td><td>${r.holeOut}</td><td>${r.threePutt}</td><td>${r.obLost}</td></tr>`;
+  });
+  tbl.innerHTML=h+'</tbody>';
+}
+
+function safeFileName(value){return String(value||'AX-Golf').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,60)||'AX-Golf';}
+
+function downloadSummaryReport(){
+  const lrB=G.finalized?lowRoundBonuses():{};
+  const reportRows=finalPlayerReport(lrB);
+  const title='AX Golf Final Match Report';
+  const meta=`${G.course}${G.matchNum?' · Match #'+G.matchNum:''} · ${fmtDate(G.date)} · ${G.holes} Holes`;
+  const fileName=`${safeFileName(G.course)}-${safeFileName(G.date)}-Final-Match-Report.pdf`;
+
+  const breakdownBody=[];
+  G.players.forEach(p=>{
+    let score=0,stat=0,pen=0;
+    for(let h=1;h<=G.holes;h++){
+      const hp=holePtsDetailed(p.id,h);
+      score+=hp.score;
+      stat+=hp.stat;
+      pen+=hp.penalty;
+    }
+    const bonus=lrB[p.id]||0;
+    breakdownBody.push([p.name].concat(pCount===4?[p.team]:[],[score,stat,pen,bonus||'',score+stat+pen+bonus]));
+  });
+
+  const summaryHead=[['Player'].concat(pCount===4?['Team']:[],['Stroke Play Score','Total Individual Points','LDs Won','CTPs Won','Fairways Hit in Reg','Greens Hit in Reg','Sand Saves','One Putts','Hole Outs','3 Putts or Worse','OB/Lost Balls'])];
+  const summaryBody=reportRows.map(r=>[r.player].concat(pCount===4?[r.team]:[],[r.strokePlayScore||'',r.totalPoints,r.ldsWon,r.ctpsWon,r.fir,r.gir,r.sand,r.onePutt,r.holeOut,r.threePutt,r.obLost]));
+
+  const hbdHead=[['Hole','Par'].concat(G.players.map(p=>`${p.name} Pts / Strokes`))];
+  const run={}, strokeRun={};
+  G.players.forEach(p=>{run[p.id]=0;strokeRun[p.id]=0;});
+  const hbdBody=[];
+  for(let i=1;i<=G.holes;i++){
+    const row=[i,G.pars[i]||''];
+    G.players.forEach(p=>{
+      const hp=holePts(p.id,i);
+      const sc=G.scores[p.id]?.[i]?.score;
+      run[p.id]+=hp.total;
+      if(sc) strokeRun[p.id]+=sc;
+      row.push(`${ps(hp.total)} / ${sc||'-'}`);
+    });
+    hbdBody.push(row);
+  }
+  hbdBody.push(['POINT TOTAL',''].concat(G.players.map(p=>ps(run[p.id]))));
+  hbdBody.push(['STROKE TOTAL',''].concat(G.players.map(p=>strokeRun[p.id]||'-')));
+
+  function getWinnerText(){
+    const tots={};G.players.forEach(p=>{tots[p.id]=playerTot(p.id).total;});
+    if(pCount===4){
+      const t1s=G.players.filter(p=>p.teamId===1).reduce((s,p)=>s+tots[p.id]+(lrB[p.id]||0),0);
+      const t2s=G.players.filter(p=>p.teamId===2).reduce((s,p)=>s+tots[p.id]+(lrB[p.id]||0),0);
+      const t1n=G.players.find(p=>p.teamId===1)?.team||'Team 1';
+      const t2n=G.players.find(p=>p.teamId===2)?.team||'Team 2';
+      if(t1s>t2s) return `${t1n} Wins (${t1s} - ${t2s})`;
+      if(t2s>t1s) return `${t2n} Wins (${t2s} - ${t1s})`;
+      return `Tie (${t1s} - ${t2s})`;
+    }
+    const finals=G.players.map(p=>({p,s:tots[p.id]+(lrB[p.id]||0)}));
+    const maxF=Math.max(...finals.map(x=>x.s));
+    const topF=finals.filter(x=>x.s===maxF);
+    return topF.length===1?`${topF[0].p.name} Wins (${maxF} pts)`: `Tie (${maxF} pts)`;
+  }
+
+  if(window.jspdf && window.jspdf.jsPDF){
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'});
+    let y=42;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(16);
+    doc.text(title,40,y);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    y+=18;
+    doc.text(meta,40,y);
+
+    y+=22;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(12);
+    doc.text('Match Summary',40,y);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    y+=16;
+    doc.text(getWinnerText(),40,y);
+
+    doc.autoTable({
+      head:[['Player'].concat(pCount===4?['Team']:[],['Final Points','Stroke Play Score'])],
+      body:reportRows.map(r=>[r.player].concat(pCount===4?[r.team]:[],[r.totalPoints,r.strokePlayScore||''])),
+      startY:y+14,theme:'grid',styles:{fontSize:8,cellPadding:4,halign:'center'},headStyles:{fillColor:[21,101,192],textColor:255},columnStyles:{0:{halign:'left'}}
+    });
+
+    doc.autoTable({
+      head:[['Player'].concat(pCount===4?['Team']:[],['Score','Stats','Penalty','Bonus','Total'])],
+      body:breakdownBody,
+      startY:doc.lastAutoTable.finalY+18,theme:'grid',styles:{fontSize:8,cellPadding:4,halign:'center'},headStyles:{fillColor:[21,101,192],textColor:255},columnStyles:{0:{halign:'left'}}
+    });
+
+    doc.addPage('letter','landscape');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text('Match Summary Report',40,42);
+    doc.autoTable({head:summaryHead,body:summaryBody,startY:58,theme:'grid',styles:{fontSize:7,cellPadding:3,halign:'center'},headStyles:{fillColor:[21,101,192],textColor:255},columnStyles:{0:{halign:'left'}}});
+
+    doc.addPage('letter','landscape');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text('Hole by Hole',40,42);
+    doc.autoTable({head:hbdHead,body:hbdBody,startY:58,theme:'grid',styles:{fontSize:8,cellPadding:4,halign:'center'},headStyles:{fillColor:[21,101,192],textColor:255},columnStyles:{0:{halign:'left'}}});
+    doc.save(fileName);
+    return;
+  }
+
+  // Fallback for browsers that cannot load the PDF library.
+  const printable=window.open('','_blank');
+  if(!printable){alert('Please allow pop-ups to print or save the report as a PDF.');return;}
+  const tableHtml=(head,body)=>`<table><thead><tr>${head[0].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${body.map(row=>`<tr>${row.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  printable.document.write(`<html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px}table{border-collapse:collapse;width:100%;font-size:11px;margin-bottom:22px}th,td{border:1px solid #999;padding:6px;text-align:center}th{background:#e8f4fd}td:first-child,th:first-child{text-align:left}h3{margin-top:24px}</style></head><body><h2>${title}</h2><p>${meta}</p><h3>Match Summary</h3><p>${getWinnerText()}</p>${tableHtml([['Player'].concat(pCount===4?['Team']:[],['Final Points','Stroke Play Score'])],reportRows.map(r=>[r.player].concat(pCount===4?[r.team]:[],[r.totalPoints,r.strokePlayScore||''])))}<h3>Player Breakdown</h3>${tableHtml([['Player'].concat(pCount===4?['Team']:[],['Score','Stats','Penalty','Bonus','Total'])],breakdownBody)}<h3>Match Summary Report</h3>${tableHtml(summaryHead,summaryBody)}<h3>Hole by Hole</h3>${tableHtml(hbdHead,hbdBody)}<p>Use your browser's Print command and choose Save as PDF.</p></body></html>`);
+  printable.document.close();
+  printable.focus();
+  printable.print();
+}
+
 function finalizeMatch(){
   const ok = window.confirm('Finalize Match?');
   if(!ok) return;
@@ -950,18 +1142,18 @@ function showSummary(isFinal=false){
     ptbl.appendChild(row);
   });
 
+  renderSummaryReport(lrB);
+
   // Hole by hole
   const hbt=document.getElementById('hbdTbl');
   let h=`<thead><tr><th>Hole</th><th>Par</th>`;
   G.players.forEach(p=>h+=`<th style="color:${PCOLOR[p.ci]}">${p.name.split(' ')[0]}<br><small>Pts / Strokes</small></th>`);
-  h+=`<th>Total<br><small>Strokes</small></th></tr></thead><tbody>`;
+  h+=`</tr></thead><tbody>`;
   const run={}, strokeRun={};
   G.players.forEach(p=>{run[p.id]=0;strokeRun[p.id]=0;});
-  let matchStrokeTotal=0;
 
   for(let i=1;i<=G.holes;i++){
     const par=G.pars[i];
-    let holeStrokeTotal=0;
     h+=`<tr><td><strong>${i}</strong></td><td style="color:var(--text-muted)">${par}</td>`;
     G.players.forEach(p=>{
       const hp=holePts(p.id,i);
@@ -969,34 +1161,35 @@ function showSummary(isFinal=false){
       const sc=G.scores[p.id]?.[i]?.score;
       if(sc){
         strokeRun[p.id]+=sc;
-        holeStrokeTotal+=sc;
-        matchStrokeTotal+=sc;
       }
       h+=`<td class="${pc(hp.total)}">${ps(hp.total)}<br><small style="font-size:.62rem;color:var(--text-muted)">${sc||'–'}</small></td>`;
     });
-    h+=`<td><strong>${holeStrokeTotal||'–'}</strong></td></tr>`;
+    h+=`</tr>`;
   }
 
   h+=`<tr class="tot"><td colspan="2">POINT TOTAL</td>`;
   G.players.forEach(p=>h+=`<td class="${pc(run[p.id])}">${ps(run[p.id])}</td>`);
-  h+=`<td></td></tr>`;
+  h+=`</tr>`;
 
   h+=`<tr class="tot"><td colspan="2">STROKE TOTAL</td>`;
   G.players.forEach(p=>h+=`<td>${strokeRun[p.id]||'–'}</td>`);
-  h+=`<td><strong>${matchStrokeTotal||'–'}</strong></td></tr></tbody>`;
+  h+=`</tr></tbody>`;
   hbt.innerHTML=h;
 
   // Show correct buttons
   const holesPlayed=G.players.length?Object.keys(G.scores[G.players[0].id]).length:0;
   const returnBtn=document.getElementById('returnBtn');
   const newMatchBtn=document.getElementById('newMatchBtn');
+  const downloadReportBtn=document.getElementById('downloadReportBtn');
   if(isFinal){
     returnBtn.style.display='none';
     newMatchBtn.style.display='block';
+    if(downloadReportBtn) downloadReportBtn.style.display='block';
     document.querySelector('.sum-hero h2').textContent='Match Results';
   } else {
     returnBtn.style.display='block';
     newMatchBtn.style.display='block';
+    if(downloadReportBtn) downloadReportBtn.style.display='none';
     document.querySelector('.sum-hero h2').textContent=`Scores — Hole ${G.currentHole} of ${G.holes}`;
   }
 
