@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-7YXE7MLMBZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-7YXE7MLMBZ');
-</script>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AX Golf Scorecard</title>
@@ -32,8 +22,12 @@
   .field{margin-bottom:13px;}
   .field label{display:block;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;}
   .field input,.field select{width:100%;background:#f0f7fd;border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s;}
-  .field input:focus,.field select:focus{border-color:var(--blue-light);}
+  .field textarea{width:100%;min-height:150px;resize:vertical;background:#f0f7fd;border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-light);}
   .field select option{background:#fff;}
+  .contact-status{display:none;border-radius:8px;padding:11px 13px;margin-bottom:13px;font-size:.85rem;line-height:1.35;}
+  .contact-status.ok{display:block;background:#d4edda;border:1px solid var(--green-light);color:var(--green);}
+  .contact-status.err{display:block;background:#fde8e8;border:1px solid var(--red-light);color:#c0392b;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .count-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px;}
   .count-btn{padding:16px 4px;border-radius:10px;border:2px solid var(--border);background:#f0f7fd;color:var(--text-muted);font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .15s;}
@@ -292,7 +286,7 @@
     <button class="menu-btn gold" onclick="goPlay()">PLAY</button>
     <button class="menu-btn" onclick="showLeagues()">LEAGUES</button>
 
-<button class="menu-btn dark" onclick="window.location.href='mailto:dryden716@gmail.com?subject=AX%20Golf%20App%20Feedback&body=Thank%20you%20for%20using%20AX%20Golf!%0A%0APlease%20share%20your%20feedback%20below:%0A%0A'">CONTACT US</button>
+<button class="menu-btn dark" onclick="showContact()">CONTACT US</button>
 
   </div>
 </div>
@@ -397,6 +391,27 @@
   <div class="card">
     <h2>AX Golf Leagues</h2>
     <div class="coming-soon">AX GOLF Leagues are coming soon!</div>
+  </div>
+  <button class="btn-primary" onclick="showMainMenu()">BACK TO HOME</button>
+  <pb></pb>
+</div>
+
+
+<!-- CONTACT US -->
+<div id="contactScreen" class="screen">
+  <div class="card">
+    <h2>Contact AX Golf</h2>
+    <div class="rules-note">Have feedback, a question, or an issue with the app? Send it here and it will go directly to AX Golf.</div>
+    <div id="contactStatus" class="contact-status"></div>
+    <form id="contactForm" onsubmit="submitContactForm(event)">
+      <input type="hidden" name="_subject" value="AX Golf App Feedback">
+      <input type="hidden" name="source" value="AX Golf Android App / WebView">
+      <div class="field"><label>Name</label><input type="text" id="contactName" name="name" placeholder="Your name" required></div>
+      <div class="field"><label>Email</label><input type="email" id="contactEmail" name="email" placeholder="your@email.com" required></div>
+      <div class="field"><label>Phone</label><input type="tel" id="contactPhone" name="phone" placeholder="Optional"></div>
+      <div class="field"><label>Comment</label><textarea id="contactMessage" name="message" placeholder="Tell us what happened, what you liked, or what you would improve." required></textarea></div>
+      <button class="btn-primary" id="contactSubmitBtn" type="submit">SEND MESSAGE</button>
+    </form>
   </div>
   <button class="btn-primary" onclick="showMainMenu()">BACK TO HOME</button>
   <pb></pb>
@@ -1213,6 +1228,52 @@ function goHome(){goPlay();}
 function goPlay(){switchScreen('setupScreen');hideLive();window.scrollTo(0,0);}
 function showRules(){switchScreen('rulesScreen');hideLive();window.scrollTo(0,0);}
 function showLeagues(){switchScreen('leaguesScreen');hideLive();window.scrollTo(0,0);}
+function showContact(){
+  switchScreen('contactScreen');
+  hideLive();
+  const session=getSession && getSession();
+  if(session){
+    const nameEl=document.getElementById('contactName');
+    const emailEl=document.getElementById('contactEmail');
+    if(nameEl && !nameEl.value) nameEl.value=session.name||'';
+    if(emailEl && !emailEl.value) emailEl.value=session.email||'';
+  }
+  setContactStatus('', '');
+  window.scrollTo(0,0);
+}
+function setContactStatus(type,msg){
+  const el=document.getElementById('contactStatus');
+  if(!el) return;
+  el.className='contact-status' + (type ? ' ' + type : '');
+  el.textContent=msg||'';
+}
+async function submitContactForm(event){
+  event.preventDefault();
+  const form=document.getElementById('contactForm');
+  const btn=document.getElementById('contactSubmitBtn');
+  const endpoint='https://formspree.io/f/xbdepqba';
+  if(endpoint.includes('YOUR_FORM_ID')){
+    setContactStatus('err','Formspree is not connected yet. Replace YOUR_FORM_ID in the HTML with your Formspree form ID.');
+    return;
+  }
+  btn.disabled=true;
+  btn.textContent='SENDING...';
+  setContactStatus('', '');
+  try{
+    const response=await fetch(endpoint,{method:'POST',body:new FormData(form),headers:{'Accept':'application/json'}});
+    if(response.ok){
+      form.reset();
+      setContactStatus('ok','Thank you. Your message has been sent to AX Golf.');
+    }else{
+      setContactStatus('err','The message could not be sent. Please check your connection and try again.');
+    }
+  }catch(err){
+    setContactStatus('err','The message could not be sent. Please check your connection and try again.');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='SEND MESSAGE';
+  }
+}
 function newMatch(){matchStarted=false;G={course:'',date:document.getElementById('matchDate').value||new Date().toISOString().split('T')[0],matchNum:'',players:[],holes:9,currentHole:1,pars:{},scores:{},finalized:false};document.getElementById('startMatchBtn').textContent='START AX GOLF MATCH';switchScreen('setupScreen');document.getElementById('liveBar').style.display='none';window.scrollTo(0,0);}
 function switchScreen(id){document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const target=document.getElementById(id);if(target){target.classList.add('active');}document.getElementById('mainHeader').style.display='flex';}
 
