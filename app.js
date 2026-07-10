@@ -180,7 +180,7 @@ function renderCards(){
       ldH=`<div class="adv-box"><h4>Fairway Duel</h4>
         <div class="info-tip" style="margin-bottom:9px;"><strong>${lockMsg}</strong></div>
         <div class="tog-grid" style="margin-bottom:${ldActive||!ownFir?'10px':'0'}">
-          ${ldToggle(p.id,'ldBoth','Both in FW — I Was Longer','I outdrove opponent','gold',d.ldBoth,canBoth)}
+          ${ldToggle(p.id,'ldBoth','Won Fairway Duel','Both players hit the fairway','gold',d.ldBoth,canBoth)}
           ${ldToggle(p.id,'ldFWOnly','Only I Hit the Fairway','Auto Fairway Duel win','blue',d.ldFWOnly,canFWOnly)}
         </div>
         ${ldActive||!ownFir?`<div class="divlbl" style="margin-top:0">Choose Fairway Duel Action</div>
@@ -207,7 +207,7 @@ function renderCards(){
     const ctpMsg=ctpNeedsGIR
       ? '<strong style="color:#e74c3c">Select Green in Reg above first</strong> to unlock Pin Hunt options.'
       : oppWonCTP
-        ? '<strong>Your Opponent Won Pin Hunt.</strong> Select Lost Pin Hunt.'
+        ? '<strong>Your opponent won Pin Hunt.</strong> Select Lost Pin Hunt.'
         : bothGIR
           ? 'Both players hit GIR. Select Won Pin Hunt if you were closer to the pin.'
           : 'Pin Hunt only applies when both players hit the green in regulation.';
@@ -215,7 +215,7 @@ function renderCards(){
       <div class="info-tip" style="margin-bottom:9px;">${ctpMsg}</div>
       <div class="tog-grid" style="margin-bottom:${ctpState?'10px':'0'}">
         ${ctpToggle(p.id,'ctpWon','Won Pin Hunt','I was closer','gold',ctpState==='won',canWinCTP)}
-        ${ctpToggle(p.id,'ctpLost','Lost Pin Hunt','Opponent Won Pin Hunt','neg',ctpState==='lost',canLoseCTP)}
+        ${ctpToggle(p.id,'ctpLost','Lost Pin Hunt','Opponent won Pin Hunt','neg',ctpState==='lost',canLoseCTP)}
       </div>
       <div style="margin-top:7px;${canNoCTP?'':'opacity:.45;pointer-events:none;'}">
         ${ctpToggle(p.id,'ctpMissed','No Pin Hunt','One or both missed GIR','neg',ctpState==='missed',canNoCTP)}
@@ -285,7 +285,7 @@ function togStat(pid,key){
   }
   if(key==='ldFWOnly'){
     if(!d.fir){alert('Select Fairway Hit before selecting Fairway Duel.');return;}
-    if(opp&&od.fir){alert('Your opponent hit the fairway. Use Both in FW — I Was Longer instead.');return;}
+    if(opp&&od.fir){alert('Your opponent hit the fairway. Use Won Fairway Duel instead.');return;}
     if(oppWon){alert('Your opponent already won Fairway Duel. Your only Fairway Duel selection is Hit FW but Lost Fairway Duel.');return;}
     d.ldFWOnly=!d.ldFWOnly;d.ldBoth=false;d.ldLost=false;if(!d.ldFWOnly)d.ldAction=null;syncLongDrive(pid);renderCards();return;
   }
@@ -299,7 +299,7 @@ function togStat(pid,key){
   if(key==='ctpWon'){
     if(!d.gir){alert('Green in Regulation must be selected first.');return;}
     if(!opp || !od.gir){alert('Pin Hunt only applies when both players hit the green in regulation.');return;}
-    if(od.ctpState==='won'){alert('Your opponent already Won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
+    if(od.ctpState==='won'){alert('Your opponent already won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
     d.ctpWon=!d.ctpWon;
     d.ctpLost=false;d.ctpMissed=false;
     d.ctpState=d.ctpWon?'won':null;
@@ -313,7 +313,7 @@ function togStat(pid,key){
     d.ctpWon=false;d.ctpMissed=false;d.ctpAction=null;
     d.ctpState=d.ctpLost?'lost':null;
   } else if(key==='ctpMissed'){
-    if(opp && od.ctpState==='won'){alert('Your opponent already Won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
+    if(opp && od.ctpState==='won'){alert('Your opponent already won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
     if(d.gir && opp && od.gir){alert('Both players hit GIR. Select Won Pin Hunt or Lost Pin Hunt.');return;}
     d.ctpWon=false;d.ctpLost=false;d.ctpAction=null;
     d.ctpMissed=!d.ctpMissed;
