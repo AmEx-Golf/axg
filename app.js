@@ -89,7 +89,7 @@ function holePts(pid,h){
   const opp=getOpponent(pid), od=opp?getData(opp.id,h):{};
   const oppMovedMeOffGreen=!!(d.ctpLost && od.ctpState==='won' && od.ctpAction==='pushOff');
   if(d.fir && !d.ldLost) stat+=AX_GOLF.fir;
-  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Long Drive
+  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Fairway Duel
   if(d.gir && !oppMovedMeOffGreen) stat+=AX_GOLF.gir;
   if(d.ctpWon && d.ctpState==='won' && d.ctpAction==='pushOff') stat+=AX_GOLF.gir; // stolen GIR pts only when opponent is moved off green
   if(d.sand) stat+=AX_GOLF.sand;
@@ -107,7 +107,7 @@ function holePtsDetailed(pid,h){
   const oppMovedMeOffGreen=!!(d.ctpLost && od.ctpState==='won' && od.ctpAction==='pushOff');
 
   if(d.fir && !d.ldLost) stat+=AX_GOLF.fir;
-  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Long Drive
+  if(d.ldBoth) stat+=AX_GOLF.fir; // stolen opponent FIR pts when both players hit FW and I win Fairway Duel
   if(d.gir && !oppMovedMeOffGreen) stat+=AX_GOLF.gir;
   if(d.ctpWon && d.ctpState==='won' && d.ctpAction==='pushOff') stat+=AX_GOLF.gir; // stolen GIR pts only when opponent is moved off green
   if(d.sand) stat+=AX_GOLF.sand;
@@ -165,7 +165,7 @@ function renderCards(){
       <div class="ob-count" style="${obCount>0?'color:#e74c3c':'color:var(--text-muted)'}">${obCount}</div>
       <button class="ob-btn" onclick="adjOB(${p.id},1)">+</button>
     </div>`;
-    // Long Drive (par 4 & 5)
+    // Fairway Duel (par 4 & 5)
     let ldH='';
     if(!isP3){
       const opp=getOpponent(p.id), od=opp?getData(opp.id,h):{};
@@ -176,24 +176,24 @@ function renderCards(){
       const canLost=ownFir && oppWon;
       const canMoveOwn=ldActive;
       const canMoveOpp=ldActive && oppFir;
-      const lockMsg=!ownFir?'Select Fairway Hit above to unlock Long Drive.':oppWon?'Opponent already won Long Drive. Select Hit Fairway but Lost Long Drive if you hit the fairway.':!opp?'Long Drive requires an opponent.':oppFir?'Both players hit the fairway. Winner may choose Option A or Option B.':'Opponent missed the fairway. You may choose Option A only; Option B is locked.';
-      ldH=`<div class="adv-box"><h4>Long Drive</h4>
+      const lockMsg=!ownFir?'Select Fairway Hit above to unlock Fairway Duel.':oppWon?'Opponent already won Fairway Duel. Select Hit Fairway but Lost Fairway Duel if you hit the fairway.':!opp?'Fairway Duel requires an opponent.':oppFir?'Both players hit the fairway. Winner may choose Option A or Option B.':'Opponent missed the fairway. You may choose Option A only; Option B is locked.';
+      ldH=`<div class="adv-box"><h4>Fairway Duel</h4>
         <div class="info-tip" style="margin-bottom:9px;"><strong>${lockMsg}</strong></div>
         <div class="tog-grid" style="margin-bottom:${ldActive||!ownFir?'10px':'0'}">
           ${ldToggle(p.id,'ldBoth','Both in FW — I Was Longer','I outdrove opponent','gold',d.ldBoth,canBoth)}
-          ${ldToggle(p.id,'ldFWOnly','Only I Hit the Fairway','Auto Long Drive win','blue',d.ldFWOnly,canFWOnly)}
+          ${ldToggle(p.id,'ldFWOnly','Only I Hit the Fairway','Auto Fairway Duel win','blue',d.ldFWOnly,canFWOnly)}
         </div>
-        ${ldActive||!ownFir?`<div class="divlbl" style="margin-top:0">Choose LD Action</div>
+        ${ldActive||!ownFir?`<div class="divlbl" style="margin-top:0">Choose Fairway Duel Action</div>
           <div class="adv-act-grid">
             <button class="adv-btn ${lda==='moveOwn'?'sel-g':''}" ${canMoveOwn?'': 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="setF(${p.id},'ldAction','moveOwn')">Option A<br>Move My Ball<br><small>+10 paces forward</small></button>
             <button class="adv-btn ${lda==='moveOpp'?'sel-g':''}" ${canMoveOpp?'': 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="setF(${p.id},'ldAction','moveOpp')">Option B<br>Move Opp Ball<br><small>-10 paces back</small></button>
             <button class="adv-btn ${lda==='skip'?'sel-n':''}" style="grid-column:1/-1" onclick="setF(${p.id},'ldAction','skip')">No Action</button>
           </div>`:''}
-        <div class="divlbl" style="margin-top:${ldActive||!ownFir?'10px':'0'}">Lost Long Drive</div>
-        ${ldToggle(p.id,'ldLost','Hit FW but Lost LD — FIR Stolen','Opponent steals my FIR pts','neg',d.ldLost,canLost)}
+        <div class="divlbl" style="margin-top:${ldActive||!ownFir?'10px':'0'}">Lost Fairway Duel</div>
+        ${ldToggle(p.id,'ldLost','Hit FW but Lost Fairway Duel — FIR Stolen','Opponent steals my FIR pts','neg',d.ldLost,canLost)}
       </div>`;
     }
-    // Closest to Pin (ALL holes)
+    // Pin Hunt (ALL holes)
     const oppCTP=getOpponent(p.id), odCTP=oppCTP?getData(oppCTP.id,h):{};
     const ctpState=d.ctpState||null;
     const ctpa=d.ctpAction||null;
@@ -205,28 +205,28 @@ function renderCards(){
     const canNoCTP=!bothGIR && !oppWonCTP;
     const ctpNeedsGIR=!ownGIR;
     const ctpMsg=ctpNeedsGIR
-      ? '<strong style="color:#e74c3c">Select Green in Reg above first</strong> to unlock CTP options.'
+      ? '<strong style="color:#e74c3c">Select Green in Reg above first</strong> to unlock Pin Hunt options.'
       : oppWonCTP
-        ? '<strong>Your opponent won CTP.</strong> Select Lost CTP.'
+        ? '<strong>Your Opponent Won Pin Hunt.</strong> Select Lost Pin Hunt.'
         : bothGIR
-          ? 'Both players hit GIR. Select Won CTP if you were closer.'
-          : 'CTP only applies when both players hit the green in regulation.';
-    const ctpH=`<div class="adv-box ctp"><h4>Closest to the Pin</h4>
+          ? 'Both players hit GIR. Select Won Pin Hunt if you were closer to the pin.'
+          : 'Pin Hunt only applies when both players hit the green in regulation.';
+    const ctpH=`<div class="adv-box ctp"><h4>Pin Hunt</h4>
       <div class="info-tip" style="margin-bottom:9px;">${ctpMsg}</div>
       <div class="tog-grid" style="margin-bottom:${ctpState?'10px':'0'}">
-        ${ctpToggle(p.id,'ctpWon','Won CTP','I was closer','gold',ctpState==='won',canWinCTP)}
-        ${ctpToggle(p.id,'ctpLost','Lost CTP','Opponent won CTP','neg',ctpState==='lost',canLoseCTP)}
+        ${ctpToggle(p.id,'ctpWon','Won Pin Hunt','I was closer','gold',ctpState==='won',canWinCTP)}
+        ${ctpToggle(p.id,'ctpLost','Lost Pin Hunt','Opponent Won Pin Hunt','neg',ctpState==='lost',canLoseCTP)}
       </div>
       <div style="margin-top:7px;${canNoCTP?'':'opacity:.45;pointer-events:none;'}">
-        ${ctpToggle(p.id,'ctpMissed','No CTP','One or both missed GIR','neg',ctpState==='missed',canNoCTP)}
+        ${ctpToggle(p.id,'ctpMissed','No Pin Hunt','One or both missed GIR','neg',ctpState==='missed',canNoCTP)}
       </div>
-      ${ctpState==='won'?`<div class="divlbl" style="margin-top:10px">Choose CTP Action</div>
+      ${ctpState==='won'?`<div class="divlbl" style="margin-top:10px">Choose Pin Hunt Action</div>
         <div class="adv-act-grid">
           <button class="adv-btn ${ctpa==='pushOff'?'sel-g':''}" onclick="setF(${p.id},'ctpAction','pushOff')">Move Opp Off Green<br><small>Opp loses GIR pts</small></button>
           <button class="adv-btn ${ctpa==='keep'?'sel-n':''}" onclick="setF(${p.id},'ctpAction','keep')">Keep Opp on Green<br><small>Opp keeps GIR pts</small></button>
         </div>`:''}
       ${ctpState==='lost'?`<div style="background:${odCTP.ctpAction==='pushOff'?'rgba(192,57,43,.1)':'rgba(45,158,72,.1)'};border:1px solid ${odCTP.ctpAction==='pushOff'?'rgba(192,57,43,.3)':'rgba(45,158,72,.3)'};border-radius:8px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;color:${odCTP.ctpAction==='pushOff'?'#e74c3c':'var(--green)'};text-align:center;margin-top:10px;">${odCTP.ctpAction==='pushOff'?'Your GIR points were stolen':'Opponent kept you on green · You keep GIR points'}</div>`:''}
-      ${ctpState==='missed'?`<div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:8px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;color:#e74c3c;text-align:center;margin-top:10px;">No CTP points awarded this hole</div>`:''}
+      ${ctpState==='missed'?`<div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:8px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;color:#e74c3c;text-align:center;margin-top:10px;">No Pin Hunt points awarded this hole</div>`:''}
     </div>`;
     const card=document.createElement('div');
     card.className=`player-card pc${p.ci}`;
@@ -262,7 +262,7 @@ function togStat(pid,key){
   const opp=getOpponent(pid), od=opp?getData(opp.id):{};
   const oppWon=hasLDWin(od);
 
-  // Long Drive is controlled by Fairway Hit and opponent state.
+  // Fairway Duel is controlled by Fairway Hit and opponent state.
   if(key==='fir'){
     d.fir=!d.fir;
     if(!d.fir){
@@ -278,28 +278,28 @@ function togStat(pid,key){
     renderCards();return;
   }
   if(key==='ldBoth'){
-    if(!d.fir){alert('Select Fairway Hit before selecting Long Drive.');return;}
+    if(!d.fir){alert('Select Fairway Hit before selecting Fairway Duel.');return;}
     if(!opp||!od.fir){alert('Option for both players in the fairway is only available when your opponent also hit the fairway.');return;}
-    if(oppWon){alert('Your opponent already won Long Drive. Your only Long Drive selection is Hit FW but Lost LD.');return;}
+    if(oppWon){alert('Your opponent already won Fairway Duel. Your only Fairway Duel selection is Hit FW but Lost Fairway Duel.');return;}
     d.ldBoth=!d.ldBoth;d.ldFWOnly=false;d.ldLost=false;if(!d.ldBoth)d.ldAction=null;syncLongDrive(pid);renderCards();return;
   }
   if(key==='ldFWOnly'){
-    if(!d.fir){alert('Select Fairway Hit before selecting Long Drive.');return;}
+    if(!d.fir){alert('Select Fairway Hit before selecting Fairway Duel.');return;}
     if(opp&&od.fir){alert('Your opponent hit the fairway. Use Both in FW — I Was Longer instead.');return;}
-    if(oppWon){alert('Your opponent already won Long Drive. Your only Long Drive selection is Hit FW but Lost LD.');return;}
+    if(oppWon){alert('Your opponent already won Fairway Duel. Your only Fairway Duel selection is Hit FW but Lost Fairway Duel.');return;}
     d.ldFWOnly=!d.ldFWOnly;d.ldBoth=false;d.ldLost=false;if(!d.ldFWOnly)d.ldAction=null;syncLongDrive(pid);renderCards();return;
   }
   if(key==='ldLost'){
     if(!d.fir){alert('Select Fairway Hit first.');return;}
-    if(!oppWon){alert('Hit FW but Lost LD is only available after your opponent wins Long Drive.');return;}
+    if(!oppWon){alert('Hit FW but Lost Fairway Duel is only available after your opponent wins Fairway Duel.');return;}
     d.ldLost=!d.ldLost;d.ldBoth=false;d.ldFWOnly=false;d.ldAction=null;renderCards();return;
   }
 
-  // CTP: mutually exclusive and locked against opponent selection
+  // Pin Hunt: mutually exclusive and locked against opponent selection
   if(key==='ctpWon'){
     if(!d.gir){alert('Green in Regulation must be selected first.');return;}
-    if(!opp || !od.gir){alert('CTP only applies when both players hit the green in regulation.');return;}
-    if(od.ctpState==='won'){alert('Your opponent already won CTP. Your only CTP selection is Lost CTP.');return;}
+    if(!opp || !od.gir){alert('Pin Hunt only applies when both players hit the green in regulation.');return;}
+    if(od.ctpState==='won'){alert('Your opponent already Won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
     d.ctpWon=!d.ctpWon;
     d.ctpLost=false;d.ctpMissed=false;
     d.ctpState=d.ctpWon?'won':null;
@@ -307,20 +307,20 @@ function togStat(pid,key){
     syncCTP(pid);
   } else if(key==='ctpLost'){
     if(!d.gir){alert('Green in Regulation must be selected first.');return;}
-    if(!opp || !od.gir){alert('CTP only applies when both players hit the green in regulation.');return;}
-    if(od.ctpState!=='won'){alert('Lost CTP is only available after your opponent selects Won CTP.');return;}
+    if(!opp || !od.gir){alert('Pin Hunt only applies when both players hit the green in regulation.');return;}
+    if(od.ctpState!=='won'){alert('Lost Pin Hunt is only available after your opponent selects Won Pin Hunt.');return;}
     d.ctpLost=!d.ctpLost;
     d.ctpWon=false;d.ctpMissed=false;d.ctpAction=null;
     d.ctpState=d.ctpLost?'lost':null;
   } else if(key==='ctpMissed'){
-    if(opp && od.ctpState==='won'){alert('Your opponent already won CTP. Your only CTP selection is Lost CTP.');return;}
-    if(d.gir && opp && od.gir){alert('Both players hit GIR. Select Won CTP or Lost CTP.');return;}
+    if(opp && od.ctpState==='won'){alert('Your opponent already Won Pin Hunt. Your only Pin Hunt selection is Lost Pin Hunt.');return;}
+    if(d.gir && opp && od.gir){alert('Both players hit GIR. Select Won Pin Hunt or Lost Pin Hunt.');return;}
     d.ctpWon=false;d.ctpLost=false;d.ctpAction=null;
     d.ctpMissed=!d.ctpMissed;
     d.ctpState=d.ctpMissed?'missed':null;
   } else {
     d[key]=!d[key];
-    // If GIR is turned off, clear CTP selections for both players in the pairing.
+    // If GIR is turned off, clear Pin Hunt selections for both players in the pairing.
     if(key==='gir' && !d.gir){
       clearCTP(d);
       if(opp){ensH(opp.id); clearCTP(getData(opp.id));}
@@ -334,13 +334,13 @@ function setF(pid,key,val){
   if(key==='ldAction'){
     const opp=getOpponent(pid), od=opp?getData(opp.id):{};
     if(val!=='skip'){
-      if(!d.fir){alert('Select Fairway Hit before choosing a Long Drive action.');return;}
-      if(!hasLDWin(d)){alert('Select a valid Long Drive win before choosing Option A or Option B.');return;}
+      if(!d.fir){alert('Select Fairway Hit before choosing a Fairway Duel action.');return;}
+      if(!hasLDWin(d)){alert('Select a valid Fairway Duel win before choosing Option A or Option B.');return;}
       if(val==='moveOpp' && !od.fir){alert('Option B is only available when your opponent hit the fairway.');return;}
     }
   }
   if(key==='ctpAction'){
-    if(d.ctpState!=='won'){alert('Select Won CTP before choosing a CTP action.');return;}
+    if(d.ctpState!=='won'){alert('Select Won Pin Hunt before choosing a Pin Hunt Action.');return;}
     if(val!=='pushOff' && val!=='keep'){return;}
   }
   d[key]=val;renderCards();
@@ -513,7 +513,7 @@ function downloadSummaryReport(){
     breakdownBody.push([p.name].concat(pCount===4?[p.team]:[],[score,stat,pen,bonus||'',score+stat+pen+bonus]));
   });
 
-  const summaryHead=[['Player'].concat(pCount===4?['Team']:[],['Stroke Play Score','Total Individual Points','LDs Won','CTPs Won','Fairways Hit in Reg','Greens Hit in Reg','Sand Saves','One Putts','Hole Outs','3 Putts or Worse','OB/Lost Balls'])];
+  const summaryHead=[['Player'].concat(pCount===4?['Team']:[],['Stroke Play Score','Total Individual Points','Fairway Duels Won','Pin Hunts Won','Fairways Hit in Reg','Greens Hit in Reg','Sand Saves','One Putts','Hole Outs','3 Putts or Worse','OB/Lost Balls'])];
   const summaryBody=reportRows.map(r=>[r.player].concat(pCount===4?[r.team]:[],[r.strokePlayScore||'',r.totalPoints,r.ldsWon,r.ctpsWon,r.fir,r.gir,r.sand,r.onePutt,r.holeOut,r.threePutt,r.obLost]));
 
   const hbdHead=[['Hole','Par'].concat(G.players.map(p=>`${p.name} Pts / Strokes`))];
@@ -661,7 +661,7 @@ function showSummary(isFinal=false){
 
   // Player breakdown
   // IMPORTANT: Use the same per-hole scoring engine as the Hole by Hole summary.
-  // This prevents the breakdown totals from drifting when LD/CTP rules affect FIR/GIR points.
+  // This prevents the breakdown totals from drifting when Fairway Duel/Pin Hunt rules affect FIR/GIR points.
   const ptbl=document.getElementById('sumBody');ptbl.innerHTML='';
   G.players.forEach(p=>{
     let score=0,stat=0,pen=0;
